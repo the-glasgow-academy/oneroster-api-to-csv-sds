@@ -1,5 +1,7 @@
-try { new-item -itemtype directory -path ./csv }
-catch { }
+#requies -modules pwsh-module-api-wrapper, ad-user-provisioning
+if (!(test-path ./csv)) {
+    new-item -itemtype directory -path ./csv 
+}
 
 $pConn = @{
     URL   = $env:GOR_API_URL
