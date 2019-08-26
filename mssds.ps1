@@ -12,7 +12,7 @@ $pConn = @{
 $orgs = Get-ApiContent @pConn -Endpoint "orgs" -all
 $orgs.orgs |
 select @{n = 'DfE Number'; e = { $_.sourcedid } },
-Name | 
+@{n = 'Name'; e = { $_.name } } |
 export-csv ./mscsv/schools.csv
 
 # teacher csv
@@ -21,7 +21,7 @@ $usersTeachers.Users |
 Where-Object username -ne $null | 
 Select @{n = 'ID'; e = { $_.SourcedId } },
 @{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-username | 
+@{n= 'Username'; e = { $_.username } } | 
 export-csv ./mscsv/teacher.csv
 
 # student csv
@@ -31,7 +31,7 @@ Select *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } }
 Where-Object YearIndex -ge 4 | 
 Select @{n = 'ID'; e = { $_.SourcedId } },
 @{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-Username,
+@{n = 'Username'; e = { $_.Username } } |
 export-csv ./mscsv/student.csv
 
 # section csv
