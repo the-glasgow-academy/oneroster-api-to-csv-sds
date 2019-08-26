@@ -21,7 +21,7 @@ $usersTeachers.Users |
 Where-Object username -ne $null | 
 Select @{n = 'ID'; e = { $_.SourcedId } },
 @{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-@{n= 'Username'; e = { $_.username } } | 
+@{n = 'Username'; e = { $_.username } } | 
 export-csv ./mscsv/teacher.csv
 
 # student csv
@@ -36,9 +36,12 @@ export-csv ./mscsv/student.csv
 
 # section csv
 $AS = Get-ApiContent @pConn -Endpoint "academicSessions" -all
+$blacklist = (Initialize-BlacklistClass).sourcedid
 
 $classes = Get-ApiContent @pConn -Endpoint "classes" -all
-$classes.classes | select @{n = 'ID'; e = { $_.sourcedId } },
+$classes.classes |
+Where-object sourcedid -notin $blacklist | 
+select @{n = 'ID'; e = { $_.sourcedId } },
 @{n = 'School DfE Number'; e = { $_.school.sourcedId -join ',' } },
 @{n = 'Section Name'; e = { $_.title } } |
 export-csv ./mscsv/sections.csv
@@ -46,6 +49,7 @@ export-csv ./mscsv/sections.csv
 # Student enrollment
 $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student'" -all
 $senrollments.Enrollments |
+Where-Object { $_.class.sourcedid -notin $blacklist } |
 select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 @{n = 'ID'; e = { 
         $id = $_.user.sourcedId
@@ -58,6 +62,7 @@ export-csv ./mscsv/studentenrollment.csv
 # teacher roster
 $tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher'" -all
 $tenrollments.Enrollments |
+where-object { $_.class.sourcedid -notin $blacklist } |
 select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 @{n = 'ID'; e = { 
         $_.user.sourcedId
