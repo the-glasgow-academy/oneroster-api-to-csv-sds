@@ -51,7 +51,7 @@ select @{n = 'ID'; e = { $_.sourcedId } },
 export-csv ./mscsv/sections.csv
 
 # Student enrollment
-$senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student'" -all
+$senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
 $senrollments.Enrollments |
 Where-Object { $_.class.sourcedid -notin $blacklist } |
 Where-Object { $_.user.sourcedid -notin $blacklistUser } |
@@ -65,7 +65,7 @@ select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 export-csv ./mscsv/studentenrollment.csv
 
 # teacher roster
-$tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher'" -all
+$tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher' AND status='Y'" -all
 $tenrollments.Enrollments |
 where-object { $_.class.sourcedid -notin $blacklist } |
 where-object { $_.user.sourcedid -notin $blacklistUser } |
