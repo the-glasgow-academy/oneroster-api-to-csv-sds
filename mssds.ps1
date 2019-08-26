@@ -48,10 +48,11 @@ $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='studen
 $senrollments.Enrollments |
 select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 @{n = 'ID'; e = { 
-    $id = $_.user.sourcedId
-    if ($id.count -gt 1) {$id[0]}
-    else {$id}
-  } } |
+        $id = $_.user.sourcedId
+        if ($id.count -gt 1) { $id[0] }
+        else { $id }
+    } 
+} |
 export-csv ./mscsv/studentenrollment.csv
 
 # teacher roster
@@ -59,8 +60,9 @@ $tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teache
 $tenrollments.Enrollments |
 select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 @{n = 'ID'; e = { 
-    $_.user.sourcedId
- } } |
+        $_.user.sourcedId
+    } 
+} |
 ? ID -ne $null |
 export-csv ./mscsv/teacherroster.csv
 
