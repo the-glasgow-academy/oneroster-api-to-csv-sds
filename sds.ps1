@@ -42,7 +42,7 @@ $classes.classes | select sourcedId,
 title,
 classType,
 @{n = 'schoolSourcedId'; e = { $_.school.sourcedId -join ',' } },
-@{n = 'termSourcedId'; e = { $_.term.sourcedId -join ',' } }  |## not in api 
+@{n = 'termSourcedId'; e = { $_.terms.sourcedId -join ',' } }  | 
 export-csv ./csv/classes.csv
 
 $enrollments = Get-ApiContent @pConn -Endpoint "enrollments" -all
