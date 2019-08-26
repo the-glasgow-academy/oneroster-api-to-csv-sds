@@ -20,7 +20,6 @@ $usersTeachers = Get-ApiContent @pConn -Endpoint "users?filter=role='teacher' AN
 $usersTeachers.Users |
 Where-Object username -ne $null | 
 Select @{n = 'ID'; e = { $_.SourcedId } },
-@{n = 'Secondary Email'; e = { $_.email } },
 @{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
 username | 
 export-csv ./mscsv/teacher.csv
@@ -31,11 +30,8 @@ $userPupil.Users |
 Select *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } | 
 Where-Object YearIndex -ge 4 | 
 Select @{n = 'ID'; e = { $_.SourcedId } },
-Username,
-@{n = 'Secondary Email'; e = { $_.email } },
 @{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-@{n = 'FirstName'; e = { $_.givenName } },
-@{n = 'LastName'; e = { $_.familyName } } | 
+Username,
 export-csv ./mscsv/student.csv
 
 # section csv
@@ -43,16 +39,8 @@ $AS = Get-ApiContent @pConn -Endpoint "academicSessions" -all
 
 $classes = Get-ApiContent @pConn -Endpoint "classes" -all
 $classes.classes | select @{n = 'ID'; e = { $_.sourcedId } },
-@{n = 'Section Name'; e = { $_.title } },
 @{n = 'School DfE Number'; e = { $_.school.sourcedId -join ',' } },
-@{n = 'term StartDate'; e = { 
-    $sd = $_.terms.sourcedId 
-    ($as.AcademicSessions | ? sourcedid -eq $sd | select startDate).startDate 
-    } },  
-@{n = 'term EndDate'; e = {
-    $ed = $_.terms.sourcedId
-    ($as.AcademicSessions | ? sourcedid -eq $ed | select enddate).EndDate
-    } } | 
+@{n = 'Section Name'; e = { $_.title } } |
 export-csv ./mscsv/sections.csv
 
 # Student enrollment
@@ -61,12 +49,8 @@ $senrollments.Enrollments |
 select @{n = 'Section ID'; e = { $_.class.sourcedId } },
 @{n = 'ID'; e = { 
     $id = $_.user.sourcedId
-    if ($id.count -gt 1) {
-        $id[0]
-    }
-    else {
-        $id
-    }  
+    if ($id.count -gt 1) {$id[0]}
+    else {$id}
   } } |
 export-csv ./mscsv/studentenrollment.csv
 
