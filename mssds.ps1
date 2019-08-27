@@ -13,7 +13,7 @@ $orgs = Get-ApiContent @pConn -Endpoint "orgs" -all
 $orgs.orgs |
 select @{n = 'DfE Number'; e = { $_.sourcedid } },
 @{n = 'Name'; e = { $_.name } } |
-export-csv ./mscsv/schools.csv
+export-csv ./mscsv/school.csv
 
 # users
 $blacklistUser = (Initialize-BlacklistUser).sourcedid
@@ -48,7 +48,7 @@ Where-object sourcedid -notin $blacklist |
 select @{n = 'ID'; e = { $_.sourcedId } },
 @{n = 'School DfE Number'; e = { $_.school.sourcedId -join ',' } },
 @{n = 'Section Name'; e = { $_.title } } |
-export-csv ./mscsv/sections.csv
+export-csv ./mscsv/section.csv
 
 # Student enrollment
 $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
