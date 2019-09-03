@@ -26,7 +26,9 @@ function Initialize-BlacklistClass {
         ($_.title -like '*MN*') -or
         ($_.title -like '*Music P4 Group*') -or
         ($_.title -like 'Support for Learning P2') -or
-        ($_.title -like 'Support for learning LT') 
-    }
+        ($_.title -like 'Support for learning LT')
+    } |
+    Select-Object *,@{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
+    Where-Object { $_.YearIndex -le 3 }
     return $f
 }
