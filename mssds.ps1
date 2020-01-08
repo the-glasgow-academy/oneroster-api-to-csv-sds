@@ -1,79 +1,151 @@
-#requies -modules pwsh-module-api-wrapper, ad-user-provisioning
-if (!(test-path ./mscsv)) {
-    new-item -itemtype directory -path ./mscsv 
+#requies -psedition core
+$uri = $env:OR_URL # "https://or.localhost/ims/oneroster/v1p1"
+$ci = $env:OR_CI # API client id
+$cs = $env:OR_CS # API client secret
+$csvDir = "./csv-sds"
+
+# check for CEDS conversion cmdlet
+try { ConvertFrom-K12 }
+catch {
+	write-error "Missing cmdlet: ConvertFrom-K12"
+	break
 }
 
-$pConn = @{
-    URL   = $env:GOR_API_URL
-    Token = $env:GOR_API_TOKEN
+# Test/Create csv directory
+if (!(test-path $csvDir)) {
+	new-item -itemtype directory -path $csvDir
 }
+
+# Get API access token
+if (!$env:OR_TOKEN) {
+	$loginP = @{
+		uri    = "$uri/login"
+		method = "POST"
+		body   = "clientid=$ci&clientsecret=$cs"
+		# SkipCertificateCheck = $true
+	}
+	$env:OR_TOKEN = Invoke-RestMethod @loginP
+}
+
+$getP = @{
+	method        = "GET"
+	headers       = @{"Authorization" = "bearer $ENV:OR_TOKEN" }
+	FollowRelLink = $true
+	# SkipCertificateCheck = $true
+}
+
 
 # school csv
-$orgs = Get-ApiContent @pConn -Endpoint "orgs" -all
-$orgs.orgs |
-select @{n = 'DfE Number'; e = { $_.sourcedid } },
-@{n = 'Name'; e = { $_.name } } |
-export-csv ./mscsv/school.csv
+$orgsGet = Invoke-RestMethod @getP -uri "$uri/orgs"
+
+$orgs = $orgsGet.orgs |
+	Select-Object @{n = 'DfE Number'; e = { $_.sourcedid } },
+	@{n = 'Name'; e = { $_.name } } 
+
+$orgs | export-csv $csvDir/school.csv
 
 # users
-$blacklistUser = (Initialize-BlacklistUser).sourcedid
+$usersGet = Invoke-RestMethod @getP -uri "$uri/users"
+# blacklist
+$blacklistUsers = $usersGet.Users |
+	Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
+	Where-Object {
+		($_.role -eq 'aide') -or 
+		($_.status -eq 'tobedeleted') -or
+		($_.email -eq 'NULL') -or
+		($_.familyName -like '*ACCOUNT*') -or
+		($_.YearIndex -ge 0 -and $_.YearIndex -le 3)
+	}
+
 # teacher csv
-$usersTeachers = Get-ApiContent @pConn -Endpoint "users?filter=role='teacher' AND status='Y'" -all
-$usersTeachers.Users |
-Where-Object username -ne $null | 
-Where-Object SourcedId -notin $blacklistUser |
-Select @{n = 'ID'; e = { $_.SourcedId } },
-@{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-@{n = 'Username'; e = { $_.username } } | 
-export-csv ./mscsv/teacher.csv
+$usersTeachers = $usersGet.users |
+	Where-Object role -eq 'teacher' |
+	Where-Object status -eq 'active' |
+	Where-Object SourcedId -notin $blacklistUsers.sourcedId |
+	Select-Object @{n = 'ID'; e = { $_.SourcedId } },
+	@{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
+	@{n = 'Username'; e = { $_.username } }
+
+$usersTeachers | export-csv $csvDir/teacher.csv
 
 # student csv
-$userPupil = Get-ApiContent @pConn -Endpoint "users?filter=role='student' AND status='Y'" -all
-$userPupil.Users |
-Select *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } | 
-Where-Object YearIndex -ge 4 | 
-Where-Object SourcedId -notin $blacklistUser |
-Select @{n = 'ID'; e = { $_.SourcedId } },
-@{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
-@{n = 'Username'; e = { $_.Username } } |
-export-csv ./mscsv/student.csv
+$usersPupil = $usersGet.users |
+	Where-Object {
+		($_.role -eq 'student') -and
+		($_.status -eq 'active') -and
+		($_.SourcedId -notin $blacklistUsers.sourcedid)
+	} |
+	Select-Object @{n = 'ID'; e = { $_.SourcedId } },
+	@{n = 'School DfE Number'; e = { $_.orgs.SourcedId -join ',' } },
+	@{n = 'Username'; e = { $_.Username } }
+
+$usersPupil | export-csv $csvDir/student.csv
 
 # section csv
+<# 
+# TODO: remove?
 $AS = Get-ApiContent @pConn -Endpoint "academicSessions" -all
-$blacklist = (Initialize-BlacklistClass).sourcedid
+#>
 
-$classes = Get-ApiContent @pConn -Endpoint "classes" -all
-$classes.classes |
-Where-object sourcedid -notin $blacklist | 
-select @{n = 'ID'; e = { $_.sourcedId } },
-@{n = 'School DfE Number'; e = { $_.school.sourcedId -join ',' } },
-@{n = 'Section Name'; e = { $_.title } } |
-export-csv ./mscsv/section.csv
+$classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'"
+#blacklist
+$blacklistClasses = $classesGet.classes | 
+	Select-Object *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } |
+	Where-Object {
+		($_.title -like "*Tutorial*") -or
+		($_.title -like "*Games*") -or
+		($_.title -like "*Instrumental*") -or
+		($_.title -like "*Environmental*") -or
+		($_.title -like "*Swimming*") -or
+		($_.title -like "*Supervised*") -or
+		($_.title -like "*P1.*") -or
+		($_.title -like "*P2.*") -or
+		($_.title -like "*NP1*") -or
+		($_.title -like "*NP2*") -or
+		($_.title -like "*NP3*") -or
+		($_.title -like "*NP4*") -or
+		($_.title -like "*MP1*") -or
+		($_.title -like "*MP2*") -or 
+		($_.title -like "*MP3*") -or
+		($_.title -like "*MP4*") -or
+		($_.title -like "*Kindergarten*") -or
+		($_.title -like "*MN*") -or
+		($_.title -like "*Music P4 Group*") -or
+		($_.title -like "Support for Learning P2") -or 
+		($_.title -like "Support for Learning LT") -or
+		($_.YearIndex -ge 0 -and $_.YearIndex -le 3)
+	} 
 
+$classes = $classesGet.classes |
+	Where-object sourcedid -notin $blacklistClasses.SourcedId | 
+	Select-Object @{n = 'ID'; e = { $_.sourcedId } },
+	@{n = 'School DfE Number'; e = { $_.school.sourcedId -join ',' } },
+	@{n = 'Section Name'; e = { $_.title } } 
+
+$classes | export-csv $csvDir/section.csv
+
+# enrollements
+$enrollmentsGet = Invoke-RestMethod @getP -uri "$uri/enrollments?filter=status='active'"
 # Student enrollment
-$senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
-$senrollments.Enrollments |
-Where-Object { $_.class.sourcedid -notin $blacklist } |
-Where-Object { $_.user.sourcedid -notin $blacklistUser } |
-select @{n = 'Section ID'; e = { $_.class.sourcedId } },
-@{n = 'ID'; e = { 
-        $id = $_.user.sourcedId
-        if ($id.count -gt 1) { $id[0] }
-        else { $id }
-    } 
-} |
-export-csv ./mscsv/studentenrollment.csv
+$enrollmentsStu = $enrollmentsGet.Enrollments |
+	Where-Object { 
+		($_.class.sourcedid -notin $blacklistClasses.sourcedId) -and
+		($_.user.sourcedid -notin $blacklistUsers.sourcedId) -and
+		($_.role -eq 'student')
+	} |
+	Select-Object @{n = 'Section ID'; e = { $_.class.sourcedId } },
+	@{ n = 'ID'; e = { $_.user.sourcedId } } 
+
+$enrollmentsStu | export-csv $csvDir/studentenrollment.csv
 
 # teacher roster
-$tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher' AND status='Y'" -all
-$tenrollments.Enrollments |
-where-object { $_.class.sourcedid -notin $blacklist } |
-where-object { $_.user.sourcedid -notin $blacklistUser } |
-select @{n = 'Section ID'; e = { $_.class.sourcedId } },
-@{n = 'ID'; e = { 
-        $_.user.sourcedId
-    } 
-} |
-? ID -ne $null |
-export-csv ./mscsv/teacherroster.csv
+$enrollmentsTea = $enrollmentsGet.enrollments |
+	where-object {
+		($_.class.sourcedId -notin $blacklistClasses.sourcedId) -and
+		($_.user.sourcedId -notin $blacklistUsers.SourcedId) -and
+		($_.role -eq "teacher")
+	} |
+	Select-Object @{n = 'Section ID'; e = { $_.class.sourcedId } },
+	@{ n = 'ID'; e = { $_.user.sourcedId } }
 
+$enrollmentsTea | export-csv $csvDir/teacherroster.csv
