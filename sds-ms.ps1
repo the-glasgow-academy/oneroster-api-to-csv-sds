@@ -82,11 +82,6 @@ $usersPupil = $usersGet.users |
 $usersPupil | export-csv $csvDir/student.csv
 
 # section csv
-<# 
-# TODO: remove?
-$AS = Get-ApiContent @pConn -Endpoint "academicSessions" -all
-#>
-
 $classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'"
 #blacklist
 $blacklistClasses = $classesGet.classes | 
