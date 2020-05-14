@@ -53,6 +53,7 @@ $blacklistUsers = $usersGet.Users |
 		($_.role -eq 'aide') -or 
 		($_.status -eq 'tobedeleted') -or
 		($_.email -eq 'NULL') -or
+        ($_.email -like '') -or
 		($_.familyName -like '*ACCOUNT*') -or
 		($_.YearIndex -ge 0 -and $_.YearIndex -le 3)
 	}
@@ -80,6 +81,38 @@ $usersPupil = $usersGet.users |
 	@{n = 'Username'; e = { $_.Username } }
 
 $usersPupil | export-csv $csvDir/student.csv
+
+# user/parents csv
+$usersParents = $usersGet.users |
+    Where-Object {
+        ($_.role -eq 'parent' -or $_.role -eq 'guardian' -or $_.role -eq 'relative') -and
+        ($_.enabledUser -eq $true) -and
+        ($_.SourcedId -notin $blacklistUsers.sourcedid)
+    } 
+$usersUser = $usersParents |
+    Select-Object @{n = 'Email'; e = { $_.email } },
+    @{n = 'First Name'; e = { $_.givenName } },
+    @{n = 'Last Name'; e = { $_.familyName } },
+    # bug requires optional fields
+    @{n = 'Phone'; e = { $null } },
+    @{n = 'SIS ID'; e = { $_.sourcedId } } 
+
+$usersUser | export-csv $csvDir/user.csv
+
+# guardianrelationship csv
+$usersGuardianRel = foreach ($u in $usersParents) {
+    foreach ($r in $u.agents) {
+        $u |
+        Select-Object @{ n = 'SIS ID'; e = { $r.sourcedId } },
+        @{ n = 'Email'; e = { $u.email } },
+        # bug requires optional field
+        @{ n = 'Role'; e = { $u.role } }
+    }
+}
+
+$usersGuardianRel |
+    Where-Object 'SIS ID' -notin $blacklistUsers.sourcedid |
+    export-csv $csvDir/guardianrelationship.csv
 
 # section csv
 $classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'"
