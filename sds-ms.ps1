@@ -55,7 +55,7 @@ $blacklistUsers = $usersGet.Users |
 		($_.email -eq 'NULL') -or
         ($_.email -like '') -or
 		($_.familyName -like '*ACCOUNT*') -or
-		($_.YearIndex -ge 0 -and $_.YearIndex -le 3)
+		($_.YearIndex -ge 0 -and $_.YearIndex -le 2)
 	}
 
 # teacher csv
@@ -126,22 +126,14 @@ $blacklistClasses = $classesGet.classes |
 		($_.title -like "*Topic*") -or
 		($_.title -like "*Swimming*") -or
 		($_.title -like "*Supervised*") -or
-		($_.title -like "*P1.*") -or
-		($_.title -like "*P2.*") -or
-		($_.title -like "*NP1*") -or
-		($_.title -like "*NP2*") -or
-		($_.title -like "*NP3*") -or
-		# ($_.title -like "*NP4*") -or
-		($_.title -like "*MP1*") -or
-		($_.title -like "*MP2*") -or 
-		($_.title -like "*MP3*") -or
-		# ($_.title -like "*MP4*") -or
 		($_.title -like "*Kindergarten*") -or
 		($_.title -like "*MN*") -or
 		($_.title -like "*Music P4 Group*") -or
 		($_.title -like "Support for Learning P2") -or 
 		($_.title -like "Support for Learning LT") -or
-		($_.YearIndex -ge 0 -and $_.YearIndex -le 3)
+		($_.YearIndex -ge 0 -and $_.YearIndex -le 2) -or
+        ($_.title -like "Dept Meeting*") -or
+        ($_.title -like "BUSY:*") 
 	} 
 
 $classes = $classesGet.classes |
