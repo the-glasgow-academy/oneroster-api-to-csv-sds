@@ -17,7 +17,7 @@ function blacklistClasses {
             ($_.title -like "*Music P4 Group*") -or
             ($_.title -like "Support for Learning P2") -or 
             ($_.title -like "Support for Learning LT") -or
-            ($_.title -like "Learing Support*") -or 
+            ($_.title -like "Learning Support*") -or 
             ($_.YearIndex -ge 0 -and $_.YearIndex -le 2) -or
             ($_.title -like "Dept Meeting*") -or
             ($_.title -like "BUSY:*") 
