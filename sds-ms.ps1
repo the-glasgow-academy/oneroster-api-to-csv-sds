@@ -4,6 +4,9 @@ $ci = $env:OR_CI # API client id
 $cs = $env:OR_CS # API client secret
 $csvDir = "./csv-sds"
 
+. ./ConvertFrom-K12.ps1
+. ./blacklist.ps1
+
 # check for CEDS conversion cmdlet
 try { ConvertFrom-K12 }
 catch {
@@ -17,7 +20,7 @@ if (!(test-path $csvDir)) {
 }
 
 # Get API access token
-if (!$env:OR_TOKEN) {
+if ($env:OR_TOKEN_RENEW -lt (get-date)) {
 	$loginP = @{
 		uri    = "$uri/login"
 		method = "POST"
@@ -25,6 +28,7 @@ if (!$env:OR_TOKEN) {
 		# SkipCertificateCheck = $true
 	}
 	$env:OR_TOKEN = Invoke-RestMethod @loginP
+    $env:OR_TOKEN_RENEW = (Get-Date).AddMinutes(25)
 }
 
 $getP = @{
@@ -49,14 +53,7 @@ $usersGet = Invoke-RestMethod @getP -uri "$uri/users"
 # blacklist
 $blacklistUsers = $usersGet.Users |
 	Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
-	Where-Object {
-		($_.role -eq 'aide') -or 
-		($_.status -eq 'tobedeleted') -or
-		($_.email -eq 'NULL') -or
-        ($_.email -like '') -or
-		($_.familyName -like '*ACCOUNT*') -or
-		($_.YearIndex -ge 0 -and $_.YearIndex -le 2)
-	}
+    blacklistUsers
 
 # teacher csv
 $usersTeachers = $usersGet.users |
@@ -119,22 +116,7 @@ $classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'"
 #blacklist
 $blacklistClasses = $classesGet.classes | 
 	Select-Object *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } |
-	Where-Object {
-		($_.title -like "*Tutorial*") -or
-		($_.title -like "*Sports*") -or
-		($_.title -like "*Instrumental*") -or
-		($_.title -like "*Topic*") -or
-		($_.title -like "*Swimming*") -or
-		($_.title -like "*Supervised*") -or
-		($_.title -like "*Kindergarten*") -or
-		($_.title -like "*MN*") -or
-		($_.title -like "*Music P4 Group*") -or
-		($_.title -like "Support for Learning P2") -or 
-		($_.title -like "Support for Learning LT") -or
-		($_.YearIndex -ge 0 -and $_.YearIndex -le 2) -or
-        ($_.title -like "Dept Meeting*") -or
-        ($_.title -like "BUSY:*") 
-	} 
+    blacklistClasses
 
 $classes = $classesGet.classes |
 	Where-object sourcedid -notin $blacklistClasses.SourcedId | 
