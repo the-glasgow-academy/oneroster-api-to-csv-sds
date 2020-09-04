@@ -8,7 +8,6 @@ function blacklistClasses {
     Process {
         $i | Where-Object {
             ($_.title -like "*Tutorial*") -or
-            ($_.title -like "*Sports*") -or
             ($_.title -like "*Instrumental*") -or
             ($_.title -like "*Topic*") -or
             ($_.title -like "*Swimming*") -or
