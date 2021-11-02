@@ -1,11 +1,12 @@
 #requies -psedition core
-$uri = $env:OR_URL # "https://or.localhost/ims/oneroster/v1p1"
+$uri = "$env:OR_URL/ims/oneroster/v1p1" # "https://or.localhost/ims/oneroster/v1p1"
 $ci = $env:OR_CI # API client id
 $cs = $env:OR_CS # API client secret
+$scope = $env:OR_SCOPE # API access scopes
 $csvDir = "./csv-sds"
 
-. ./ConvertFrom-K12.ps1
-. ./blacklist.ps1
+. $PSScriptRoot/ConvertFrom-K12.ps1
+. $PSScriptRoot/blacklist.ps1
 
 # check for CEDS conversion cmdlet
 try { ConvertFrom-K12 }
