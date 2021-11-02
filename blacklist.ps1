@@ -20,7 +20,7 @@ function blacklistClasses {
             ($_.title -like "Learning Support*") -or 
             ($_.YearIndex -ge 0 -and $_.YearIndex -le 2) -or
             ($_.title -like "Dept Meeting*") -or
-            ($_.title -like "BUSY:*") 
+            ($_.title -like "BUSY:*")
         }
     }
 }
@@ -39,7 +39,8 @@ function blacklistUsers {
             ($_.email -eq 'NULL') -or
             ($_.email -like '') -or
             ($_.familyName -like '*ACCOUNT*') -or
-            ($_.YearIndex -ge 0 -and $_.YearIndex -le 2)
+            ($_.YearIndex -ge 0 -and $_.YearIndex -lt 4) -or
+            ($null -eq $_.email)
         }
     }
 }
