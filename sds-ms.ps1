@@ -56,7 +56,7 @@ $orgs = $orgsGet.orgs |
 $orgs | export-csv $csvDir/school.csv
 
 # users
-$usersGet = Invoke-RestMethod @getP -uri "$uri/users"
+$usersGet = Invoke-RestMethod @getP -uri "$uri/users?limit=100000"
 # blacklist
 $blacklistUsers = $usersGet.Users |
 	Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
@@ -119,7 +119,7 @@ $usersGuardianRel |
     export-csv $csvDir/guardianrelationship.csv
 
 # section csv
-$classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'"
+$classesGet = Invoke-RestMethod @getP -uri "$uri/classes?filter=status='active'&limit=100000"
 #blacklist
 $blacklistClasses = $classesGet.classes | 
 	Select-Object *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } |
@@ -134,7 +134,7 @@ $classes = $classesGet.classes |
 $classes | export-csv $csvDir/section.csv
 
 # enrollements
-$enrollmentsGet = Invoke-RestMethod @getP -uri "$uri/enrollments?filter=status='active'"
+$enrollmentsGet = Invoke-RestMethod @getP -uri "$uri/enrollments?filter=status='active'&limit=100000"
 # Student enrollment
 $enrollmentsStu = $enrollmentsGet.Enrollments |
 	Where-Object { 
