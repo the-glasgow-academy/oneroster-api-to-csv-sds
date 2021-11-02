@@ -12,9 +12,10 @@ Requires: PowerShell Core (linux/mac/windows)
 
 ```powershell
 $VerbosePreference = 'continue'
-$env:OR_URL = 'https://my-oneroster-api/ims/oneroster/v1p1'
+$env:OR_URL = 'https://my-oneroster-api.com'
 $env:OR_CI = read-host #api client id
 $env:OR_CS = read-host #api client secret
+$env:OR_SCOPE = 'roster-core.readonly'
 
 ./sds-ms.ps1
 ```
