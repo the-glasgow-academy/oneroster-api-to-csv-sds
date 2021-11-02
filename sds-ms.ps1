@@ -21,15 +21,21 @@ if (!(test-path $csvDir)) {
 }
 
 # Get API access token
-if ($env:OR_TOKEN_RENEW -lt (get-date)) {
+## fix issue comparing $envs to non $envs
+$env:OR_CURRENT = get-date
+if ($env:OR_TOKEN_RENEW -lt $env:OR_CURRENT) {
+    Write-Information "Updating token"
 	$loginP = @{
-		uri    = "$uri/login"
+		uri    = "$env:OR_URL/auth/login"
 		method = "POST"
-		body   = "clientid=$ci&clientsecret=$cs"
+		body   = "client_id=$ci&client_secret=$cs&scope=$scope"
 		# SkipCertificateCheck = $true
 	}
-	$env:OR_TOKEN = Invoke-RestMethod @loginP
-    $env:OR_TOKEN_RENEW = (Get-Date).AddMinutes(25)
+	try {
+        $env:OR_TOKEN = (Invoke-RestMethod @loginP).access_token
+        $env:OR_TOKEN_RENEW = (Get-Date).AddMinutes(25)
+    }
+    catch { throw "problem getting token: $_" }
 }
 
 $getP = @{
